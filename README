@@ -1,0 +1,11 @@
+# clj-control
+
+Control abstractions for the Clojure programming language: functors, applicative functors, monads, monoids, arrows, etc.
+
+This is a work in progress.
+
+## License
+
+Copyright (C) 2010 FIXME
+
+Distributed under the LGPL Public License.
