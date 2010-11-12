@@ -5,7 +5,12 @@
 (defprotocol Monad
   "class Applicative m => Monad m where
      (>>=) :: m a -> (a -> m b) -> m b
-     (>>)  :: m a -> m b -> m b"
+     (>>)  :: m a -> m b -> m b
+   Monad laws:
+     return a >>= k = ka
+     m >>= return = m
+     m >>= (\\x -> k x >>= h) = (m >>= k) >>= h
+     fmapfxs = xs>>=return.f = liftMfxs"
   (m->>= [this fx])
   (m->> [this m]))
 
@@ -29,7 +34,7 @@
 ;; Combinators
 
 (defn m-lift
-  "m-lift :: Monad m => (a -> b) -> m a -> m b"
+  "m-lift :: Monad m =>  m a -> (a -> b) -> m b"
   ([m fx] (f-map m fx)))
 
 (defn m-apply
