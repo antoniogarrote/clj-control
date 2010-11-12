@@ -3,14 +3,14 @@
   (:use [clj-control.applicative]))
 
 (defprotocol Monad
-  "class Applicative m => Monad m where
+  "Class Applicative m => Monad m where
      (>>=) :: m a -> (a -> m b) -> m b
      (>>)  :: m a -> m b -> m b
    Monad laws:
-     return a >>= k = ka
+     return a >>= k = k a
      m >>= return = m
      m >>= (\\x -> k x >>= h) = (m >>= k) >>= h
-     fmapfxs = xs>>=return.f = liftMfxs"
+     fmap f xs = xs >>= return f = liftM f xs"
   (m->>= [this fx])
   (m->> [this m]))
 

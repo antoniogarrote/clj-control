@@ -87,6 +87,35 @@
            (from-test-monad (m-map fx xs))))))
 
 
+;; Auxiliary test functions
+
+(defn test-monad-law-1
+  "return a >>= k = k a"
+  ([k empty-m a]
+     (is (= (m->>= (m-return empty-m a) k)
+            (k a)))))
+
+(defn test-monad-law-2
+  "m >>= return = m"
+  ([m empty-m]
+     (is (= (m->>= m #(m-return empty-m %))
+            m))))
+
+(defn test-monad-law-3
+  "m >>= (\\x -> k x >>= h) = (m >>= k) >>= h"
+  ([m k h]
+     (is (= (m->>= m (fn [x] (m->>= (k x) h)))
+            (m->>= (m->>= m k) h)))))
+
+(defn test-monad-law-4
+  "fmap f xs = xs >>= return f = liftM f xs"
+  ([f xs m-zero]
+     (is (= (f-map xs f)
+            (m->>= xs (fn [x] (m-return m-zero (f x))))))
+     (is (= (f-map xs f)
+            (m-lift xs f)))))
+
+
 ;; Vectors
 
 (deftest vecs-should-support-m->>=1
@@ -98,6 +127,29 @@
            (m->>=
             (m->>= [1 2 3] (fn [x] [x x]))
             (fn [x] [x (inc x)])))))
+
+(deftest vecs-law-1
+  (let [k (fn [x] [x])
+        a 1]
+    (test-monad-law-1 k [] a)))
+
+(deftest vecs-law-2
+  (let [m [1]
+        empty-m []]
+    (test-monad-law-2 m empty-m)))
+
+(deftest vecs-law-3
+  (let [m [1]
+        k (fn [l] (vec (list (inc l))))
+        h (fn [l] (vec (list (* l 2))))]
+    (test-monad-law-3 m k h)))
+
+(deftest vecs-law-4
+  (let [f inc
+        xs [1]
+        m-zero []]
+    (test-monad-law-4 f xs m-zero)))
+
 
 ;; Lists
 
@@ -111,6 +163,27 @@
             (m->>= '(1 2 3) (fn [x] (list x x)))
             (fn [x] (list x (inc x)))))))
 
+(deftest lists-law-1
+  (test-monad-law-1 list '(1) 1))
+
+(deftest lists-law-2
+  (let [m '(1)
+        empty-m '(2)]
+    (test-monad-law-2 m empty-m)))
+
+(deftest lists-law-3
+  (let [m [1]
+        k (fn [l] (list (inc l)))
+        h (fn [l] (list (* l 2)))]
+    (test-monad-law-3 m k h)))
+
+(deftest lists-law-4
+  (let [f inc
+        xs '(1)
+        m-zero '(0)]
+    (test-monad-law-4 f xs m-zero)))
+
+
 ;; Sets
 
 (deftest sets-should-support-m->>=1
@@ -123,6 +196,27 @@
           (m->>= #{1 2 3}
                  #(set [% (inc %)]))
           #(set [% (* 3 %) (* 5 %)])))))
+
+(deftest sets-law-1
+  (test-monad-law-1 #(set %) (set [1]) [1]))
+
+(deftest sets-law-2
+  (let [m (set [1])
+        empty-m (set [])]
+    (test-monad-law-2 m empty-m)))
+
+(deftest sets-law-3
+  (let [m (set [1])
+        k (fn [l] (set (list (inc l))))
+        h (fn [l] (set (list (* l 2))))]
+    (test-monad-law-3 m k h)))
+
+(deftest sets-law-4
+  (let [f inc
+        xs (set [1])
+        m-zero (set [])]
+    (test-monad-law-4 f xs m-zero)))
+
 
 ;; Functions
 
@@ -138,3 +232,32 @@
             (m->>= (partial + 10) (fn [b]
               (m->>= (fn [x] (/ x 2)) (fn [c]
                 (m-return clojure.lang.Fn [a b c]))))))) 3))))
+
+(deftest functions-law-1
+  (let [k (fn [x] (fn [y] (+ x y)))
+        a 1
+        empty-m identity]
+    (is (= (apply (m->>= (m-return empty-m a) k) [1])
+           (apply (k a) [1])))))
+
+(deftest functions-law-2
+  (let [m inc
+        empty-m identity]
+    (is (= (apply (m->>= m #(m-return empty-m %)) [1])
+           (apply m [1])))))
+
+(deftest functions-law-3
+  (let [m (fn [k] (identity k))
+        k (fn [l] (fn [k] (+ l k)))
+        h (fn [l] (fn [k] (* k l)))]
+    (is (= (apply (m->>= m (fn [x] (m->>= (k x) h))) [1])
+           (apply (m->>= (m->>= m k) h) [1])))))
+
+(deftest functions-law-4
+  (let [f inc
+        xs (partial * 2)
+        m-zero inc]
+    (is (= (apply (f-map xs f) [1])
+           (apply (m->>= xs (fn [x] (m-return m-zero (f x)))) [1])))
+     (is (= (apply (f-map xs f) [1])
+            (apply (m-lift xs f) [1])))))
