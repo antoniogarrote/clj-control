@@ -53,6 +53,40 @@
     (is (= (from-test-functor (-> ffxid (af-* ffxu) (af-* ffxv) (af-* ffxw)))
            3))))
 
+(defn transpose-vec
+  ([matrix]
+     (if (empty? matrix)
+       (repeat '[])
+       (let [xs (first matrix)
+             xss (vec (rest matrix))
+             fst (af-* (vec (repeat (count xs) (fn[x] (fn [y] (vec (cons x y))))))
+                       xs)
+             snd (af-*
+                  fst
+                  (vec (take (count xs) (transpose-vec xss))))]
+         snd))))
+
+;; (def *res*  (transpose-vec [[1 2 3] [4 5 6] [7 8 9]]))
+;; (println (str "res is " *res*))
+
+(defn transpose
+  ([matrix]
+     (if (empty? matrix)
+       (repeat '())
+       (let [xs (first matrix)
+             xss (rest matrix)]
+         (af-*
+          (af-* (repeat (count xs) (curry 2 cons)) xs)
+          (take (count xs) (transpose xss)))))))
+
+;; (def *res*  (transpose '((1 2) (3 4) (5 6))))
+;; (doseq [r *res*]
+;;   (print "[")
+;;   (doseq [c r]
+;;     (print (str " " c) ))
+;;   (println " ]"))
+
+
 (deftest test-homomorphism
   (let [fx inc
         x  1

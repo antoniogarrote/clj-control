@@ -46,14 +46,27 @@
                    (make TestMonad (-> b (* 2) (* a)))))))]
     (is (= 64 (from-test-monad result)))))
 
+(deftest should-implement->>=-b
+  (let [result (do-m [a (make TestMonad 4)
+                      b (make TestMonad (* a 2))]
+                     (make TestMonad (-> b (* 2) (* a))))]
+    (is (= 64 (from-test-monad result)))))
 
 (deftest should-implement->>
   (let [monad-generator (get-constant-test-monad 5)
         result (m->>= (monad-generator) (fn [a]
                  (m->> (make TestMonad 6) ; This return value is not threaded
-                                  ; but the function do is invoked
+                                          ; but the function do is invoked
                    (m->>= (monad-generator) (fn [b]
                      (make TestMonad (+ a b)))))))]
+    (is (= 10 (from-test-monad result)))))
+
+(deftest should-implement->>-b
+  (let [monad-generator (get-constant-test-monad 5)
+        result (do-m [a (monad-generator)
+                      _ (make TestMonad 6)
+                      b (monad-generator)]
+                     (make TestMonad (+ a b)))]
     (is (= 10 (from-test-monad result)))))
 
 
