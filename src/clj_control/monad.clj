@@ -63,16 +63,21 @@
   ([fm xs]
      (m-sequence (map fm xs))))
 
+(defmacro do-m
+  ([actions final-action]
+     (let [m-bind-sym   (first actions)
+           action       (second actions)]
+       (if (empty? (drop 2 actions))
+         `(m->>= ~action (fn [~m-bind-sym] ~final-action))
+         `(m->>= ~action (fn [~m-bind-sym] (do-m ~(drop 2 actions) ~final-action)))))))
+
 ;; Monad example of "do notation"
 
-;(defn rand-maybe
-;  ([] (let [tmp (Math/floor (rand 10))
-;            _ (println (str "got " tmp))]
-;        (if (> tmp 5)
-;          (just tmp)
-;          (nothing)))))
-;
-;(m->>= (rand-maybe) (fn [x]
-;  (m->>= (rand-maybe) (fn [y]
-;    (m->>= (rand-maybe) (fn [z]
-;      (just (+ x y z))))))))
+(use 'clj-control.instances.maybe)
+
+(defn rand-maybe
+  ([] (let [tmp (Math/floor (rand 10))
+            _ (println (str "got " tmp))]
+        (if (> tmp 1)
+          (just tmp)
+          (nothing)))))

@@ -261,3 +261,19 @@
            (apply (m->>= xs (fn [x] (m-return m-zero (f x)))) [1])))
      (is (= (apply (f-map xs f) [1])
             (apply (m-lift xs f) [1])))))
+
+(deftest do-notation-1
+  (let [res (do-m [x [1 2]
+                   y  [x {:a x}]]
+                  [y {:b y}])]
+    (is (= res
+           [1 {:b 1} {:a 1} {:b {:a 1}} 2 {:b 2} {:a 2} {:b {:a 2}}]))))
+
+;; [1,2] >>= (\x -> [x,x*100]) >>= (\y -> [y, y*1000])
+;; [1,1000,100,100000,2,2000,200,200000]
+(deftest do-notation-2
+  (let [res (do-m [x [1 2]
+                   y [x (* 100 x)]]
+                  [y (* 1000 y)])]
+    (is (= res
+           [1 1000 100 100000 2 2000 200 200000]))))
