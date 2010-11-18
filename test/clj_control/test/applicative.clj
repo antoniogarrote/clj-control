@@ -75,6 +75,9 @@
        (repeat '())
        (let [xs (first matrix)
              xss (rest matrix)]
+;;         (-> (repeat (count xs) (curry 2 cons))
+;;             (af-* xs)
+;;             (af-* (take (count xs) (transpose xss))))))))
          (af-*
           (af-* (repeat (count xs) (curry 2 cons)) xs)
           (take (count xs) (transpose xss)))))))

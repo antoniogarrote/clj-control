@@ -2,7 +2,8 @@
   (:use [clj-control.functor]
         [clj-control.applicative]
         [clj-control.monad]
-        [clj-control.monoid]))
+        [clj-control.monoid]
+        [clj-control.category]))
 
 ;; Functions
 
@@ -40,6 +41,10 @@
   (m->> [this m]
         (default-m->> this m)))
 
+(extend-type clojure.lang.Fn
+  Category
+  (c-id [this] this)
+  (c-comp [this c] (comp c this)))
 
 ;; Vectors
 
