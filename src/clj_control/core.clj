@@ -3,7 +3,9 @@
         [clj-control.applicative]
         [clj-control.monad]
         [clj-control.monoid]
-        [clj-control.category]))
+        [clj-control.category]
+        [clj-control.arrow]
+        [clj-control.utils]))
 
 ;; Functions
 
@@ -43,8 +45,81 @@
 
 (extend-type clojure.lang.Fn
   Category
-  (c-id [this] this)
+  (c-id [this] identity)
   (c-comp [this c] (comp c this)))
+
+(extend-type clojure.lang.Fn
+  Arrow
+  (a-first [this] (a-*** this identity))
+  (a-second [this] (comp reverse (a-first this) reverse))
+  (a-&&& [this other] (>>> (fn [x] (list x x))
+                           (a-*** this other)))
+  (a-*** [this other] (fn [[x y]]
+                        (list (this x) (other y))))
+  ;; Choice
+  (a-true [this] (fn [[b x]] (if b (this b) ((c-id this) b))))
+  (a-false [this] (fn [[b x]] (if b ((c-id this) b) (this b))))
+  (a-and [this a] (fn [[b x]] (if b [b (this x)] [b (a x)])))
+  (a-or [this a] (fn [[b x]] (if b (this x) (a x)))))
+
+(defmethod arr clojure.lang.Fn
+  ([a & args] (first args)))
+
+;; Sequence functions
+
+(defrecord SeqFn [f])
+
+(defmethod make SeqFn
+  ([t & args]
+     (SeqFn. (first args))))
+
+(defn seq-fn
+  ([f] (make SeqFn f)))
+
+(defn seq-fn-map
+  ([f] (make SeqFn (partial map f))))
+
+(defmethod arr SeqFn
+  [t & args]
+  (seq-fn-map (first args)))
+
+(defn run-sf
+  ([sf & args] (apply (:f sf) args)))
+
+(extend-type SeqFn
+  Category
+  (c-id [this] this)
+  (c-comp [this c] (SeqFn. (comp (:f c) (:f this)))))
+
+(extend-type SeqFn
+  Arrow
+  (a-first [this] (a-*** this (seq-fn-map identity)))
+  (a-second [this] (>>> (seq-fn-map reverse) (a-first this) (seq-fn-map reverse)))
+  (a-&&& [this a] (>>> (seq-fn-map (fn [x] (list x x)))
+                       (a-*** this a)))
+  (a-or [this a] (seq-fn (fn [bs-xs] (map (fn [[b x]] (first (if b
+                                                             (run-sf this [x])
+                                                             (run-sf a [x]))))
+                                         bs-xs))))
+  (a-*** [this a] (seq-fn (fn [xs-ys]
+                            (letfn [(traverse-seqs [xs ys] (if (or (empty? xs)
+                                                                   (empty? ys))
+                                                             nil
+                                                             (lazy-seq (cons (list (first xs)
+                                                                                   (first ys))
+                                                                             (traverse-seqs (rest xs) (rest ys))))))
+                                    (pre-traverse [[xs ys]] (traverse-seqs((:f this) xs) ((:f a) ys)))]
+                              (pre-traverse (list (map first xs-ys)
+                                                  (map second xs-ys)))))))
+  ;; Choice
+  (a-true [this] (seq-fn (fn [bs-xs] (map (fn [[b x]] (if b (first (run-sf this [x])) x)) bs-xs))))
+  (a-false [this] (seq-fn (fn [bs-xs] (map (fn [[b x]] (if-not b (first (run-sf this [x])) x)) bs-xs))))
+  (a-and [this a] (seq-fn (fn [bs-xs] (map (fn [[b x]] [b (first (if b (run-sf this [x]) (run-sf a [x]))) x]) bs-xs))))
+  (a-or [this a] (seq-fn (fn [bs-xs] (map (fn [[b x]] (first (if b (run-sf this [x]) (run-sf a [x])))) bs-xs)))))
+
+(defn s-delay
+  ([x s] (cons x s)))
+
 
 ;; Vectors
 

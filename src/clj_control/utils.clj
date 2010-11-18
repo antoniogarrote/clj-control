@@ -12,3 +12,16 @@
 (defn $
   "Function application"
   ([x] (fn [f] (apply f [x]))))
+
+(defn $_
+  "Function application after splicing the arguments"
+  ([x] (fn [f] (apply f x))))
+
+;; Alias for partial
+(def p partial)
+
+(defn partial-apply
+  ([f] #(apply f %)))
+
+(def pa partial-apply)
+
