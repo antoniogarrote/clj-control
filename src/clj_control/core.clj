@@ -120,6 +120,14 @@
 (defn s-delay
   ([x s] (cons x s)))
 
+;; Circuits
+
+(defn nor
+  ([] (seq-fn (fn [[x y]] (not (or x y))))))
+
+(defn edge
+  ([] (>>> (a-&&& (seq-fn identity) (seq-fn (p s-delay false)))
+           (seq-fn-map (fn [[x y]] (and x (not y)))))))
 
 ;; Vectors
 
